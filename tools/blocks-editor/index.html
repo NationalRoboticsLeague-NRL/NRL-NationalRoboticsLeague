@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>NRL Block Editor — TeleOp</title>
+<script src="https://unpkg.com/blockly/blockly.min.js"></script>
+<style>
+  html,body { margin:0; height:100%; font-family:system-ui,sans-serif; }
+  #top { height:40px; display:flex; align-items:center; gap:8px; padding:0 12px;
+         background:#222; color:#eee; }
+  #top b { color:#7cc; }
+  #main { display:flex; height:calc(100% - 40px); }
+  #blockly { flex:1; min-width:0; }
+  #side { width:440px; display:flex; flex-direction:column; border-left:1px solid #ccc; }
+  .panel { flex:1; display:flex; flex-direction:column; min-height:0; }
+  .panel h3 { margin:0; padding:6px 10px; background:#eee; font-size:12px;
+              text-transform:uppercase; letter-spacing:.5px; color:#555; }
+  pre { margin:0; flex:1; overflow:auto; padding:10px; font:12px/1.45 ui-monospace,monospace;
+        background:#1e1e1e; color:#dcdcdc; white-space:pre; }
+  button { background:#3a7; color:#fff; border:0; padding:6px 12px; border-radius:4px;
+           cursor:pointer; font-size:13px; }
+</style>
+</head>
+<body>
+  <div id="top">
+    <b>NRL Block Editor — TeleOp</b> — drag blocks → live script + flashable C++
+    <span style="flex:1"></span>
+    <button id="ex" style="background:#37c">Load TeleOp 1 example</button>
+    <button id="dl">Download .cpp</button>
+  </div>
+  <div id="main">
+    <div id="blockly"></div>
+    <div id="side">
+      <div class="panel"><h3>Script view (round-trips with blocks)</h3><pre id="script"></pre></div>
+      <div class="panel"><h3>Generated C++  →  RobotFirmware/opmodes/</h3><pre id="cpp"></pre></div>
+    </div>
+  </div>
+
+<script type="module">
+import { astToText, astToCpp } from "./nrl-ast.mjs";
+
+// No "B" — the V1 board has 7 buttons and no B button, and NRLGamepad.h has no
+// constant for it. Offering it here would generate code that never compiles.
+const BUTTONS = ["X","A","Y","RB","LB","LT","RT","DPAD_UP","DPAD_DOWN","DPAD_LEFT","DPAD_RIGHT"];
+
+// ---- block definitions (one per AST kind) ---------------------------------
+Blockly.defineBlocksWithJsonArray([
+  { type:"nrl_teleop", message0:"TeleOp program %1 %2 each tick %3",
+    args0:[{type:"field_input",name:"NAME",text:"My TeleOp"},
+           {type:"input_dummy"},{type:"input_statement",name:"BODY"}],
+    colour:160, tooltip:"Runs ~50x/sec. Read gamepad, drive motors/servos." },
+
+  // -- Drive --
+  { type:"nrl_drive_tank", message0:"drive  forward %1  turn %2",
+    args0:[{type:"input_value",name:"FWD",check:"Number"},
+           {type:"input_value",name:"TURN",check:"Number"}],
+    previousStatement:null, nextStatement:null, colour:230, tooltip:"drive.drive(fwd,turn) — use stick blocks (-1..1)" },
+  { type:"nrl_motor_power", message0:"set %1 motor power %2",
+    args0:[{type:"field_dropdown",name:"SIDE",options:[["left","left"],["right","right"]]},
+           {type:"input_value",name:"POWER",check:"Number"}],
+    previousStatement:null, nextStatement:null, colour:230, tooltip:"motor.setSpeed(-255..255)" },
+  { type:"nrl_drive_stop", message0:"stop driving",
+    previousStatement:null, nextStatement:null, colour:230, tooltip:"drive.stop()" },
+
+  // -- Mechanisms --
+  { type:"nrl_servo", message0:"servo %1 to %2 °",
+    args0:[{type:"field_input",name:"NAME",text:"claw"},{type:"input_value",name:"POS",check:"Number"}],
+    previousStatement:null, nextStatement:null, colour:290, tooltip:"servo.setPosition(0..180)" },
+
+  // -- Gamepad (value/boolean) --
+  { type:"nrl_gamepad_axis", message0:"%1",
+    args0:[{type:"field_dropdown",name:"STICK",options:[
+      ["left stick Y","leftY"],["right stick X","rightX"],
+      ["left stick X","leftX"],["right stick Y","rightY"]]}],
+    output:"Number", colour:330, tooltip:"gamepad1.leftY() etc. (-1..1)" },
+  { type:"nrl_gamepad_button", message0:"button %1 %2",
+    args0:[{type:"field_dropdown",name:"BTN",options:BUTTONS.map(b=>[b,b])},
+           {type:"field_dropdown",name:"EDGE",options:[
+      ["pressed","pressed"],["just pressed","justPressed"],["just released","justReleased"]]}],
+    output:"Boolean", colour:330, tooltip:"gamepad1.pressed/justPressed/justReleased(BTN_x)" },
+
+  // -- Sensors / output --
+  { type:"nrl_imu_heading", message0:"heading", output:"Number", colour:20,
+    tooltip:"NRLComms::getHeading() (degrees)" },
+  { type:"nrl_zero_heading", message0:"zero heading",
+    previousStatement:null, nextStatement:null, colour:20, tooltip:"NRLComms::zeroHeading()" },
+  { type:"nrl_telemetry", message0:"show %1 = %2",
+    args0:[{type:"field_input",name:"KEY",text:"heading"},{type:"input_value",name:"VALUE"}],
+    previousStatement:null, nextStatement:null, colour:60, tooltip:"telemetry.addData(key, v)" },
+
+  // -- Control --
+  { type:"nrl_if", message0:"if %1 %2 do %3 else %4",
+    args0:[{type:"input_value",name:"COND",check:"Boolean"},{type:"input_dummy"},
+           {type:"input_statement",name:"THEN"},{type:"input_statement",name:"ELSE"}],
+    previousStatement:null, nextStatement:null, colour:210, tooltip:"if (cond) {...} else {...}" },
+]);
+
+// ---- toolbox --------------------------------------------------------------
+const N = (v) => ({ shadow:{ type:"math_number", fields:{NUM:v}}});
+const toolbox = { kind:"categoryToolbox", contents:[
+  { kind:"category", name:"Drive", colour:"230", contents:[
+    { kind:"block", type:"nrl_drive_tank" },
+    { kind:"block", type:"nrl_motor_power", inputs:{ POWER:N(200) }},
+    { kind:"block", type:"nrl_drive_stop" } ]},
+  { kind:"category", name:"Mechanisms", colour:"290", contents:[
+    { kind:"block", type:"nrl_servo", inputs:{ POS:N(90) }} ]},
+  { kind:"category", name:"Gamepad", colour:"330", contents:[
+    { kind:"block", type:"nrl_gamepad_axis" },
+    { kind:"block", type:"nrl_gamepad_button" } ]},
+  { kind:"category", name:"Sensors", colour:"30", contents:[
+    { kind:"block", type:"nrl_imu_heading" },
+    { kind:"block", type:"nrl_zero_heading" },
+    { kind:"block", type:"nrl_telemetry", inputs:{ VALUE:N(0) }} ]},
+  { kind:"category", name:"Logic", colour:"210", contents:[
+    { kind:"block", type:"nrl_if" },
+    { kind:"block", type:"logic_compare" },
+    { kind:"block", type:"logic_operation" },
+    { kind:"block", type:"logic_negate" },
+    { kind:"block", type:"logic_boolean" },
+    { kind:"block", type:"math_number" },
+    { kind:"block", type:"math_arithmetic" } ]},
+]};
+
+const ws = Blockly.inject("blockly", { toolbox, trashcan:true,
+  zoom:{ controls:true, wheel:true }, grid:{ spacing:20, length:3, colour:"#eee", snap:true } });
+
+Blockly.serialization.workspaces.load({ blocks:{ blocks:[
+  { type:"nrl_teleop", x:40, y:40, fields:{NAME:"My TeleOp"} } ]}}, ws);
+
+// ---- Blockly workspace  →  canonical AST ----------------------------------
+const OP_MATH = { ADD:"+", MINUS:"-", MULTIPLY:"*", DIVIDE:"/" };
+const OP_CMP  = { EQ:"==", NEQ:"!=", LT:"<", LTE:"<=", GT:">", GTE:">=" };
+
+function valueToAst(b) {
+  if (!b) return { kind:"num", value:0 };
+  switch (b.type) {
+    case "math_number":     return { kind:"num", value:parseFloat(b.getFieldValue("NUM")) };
+    case "logic_boolean":   return { kind:"bool", value:b.getFieldValue("BOOL") === "TRUE" };
+    case "nrl_imu_heading": return { kind:"imuHeading" };
+    case "nrl_gamepad_axis":return { kind:"gamepadAxis", stick:b.getFieldValue("STICK") };
+    case "nrl_gamepad_button":
+      return { kind:"gamepadButton", btn:b.getFieldValue("BTN"), edge:b.getFieldValue("EDGE") };
+    case "logic_negate":    return { kind:"not", value:valueToAst(b.getInputTargetBlock("BOOL")) };
+    case "logic_operation":
+      return { kind:"logic", op:b.getFieldValue("OP")==="AND"?"&&":"||",
+               left:valueToAst(b.getInputTargetBlock("A")), right:valueToAst(b.getInputTargetBlock("B")) };
+    case "math_arithmetic":
+      return { kind:"math", op:OP_MATH[b.getFieldValue("OP")],
+               left:valueToAst(b.getInputTargetBlock("A")), right:valueToAst(b.getInputTargetBlock("B")) };
+    case "logic_compare":
+      return { kind:"compare", op:OP_CMP[b.getFieldValue("OP")],
+               left:valueToAst(b.getInputTargetBlock("A")), right:valueToAst(b.getInputTargetBlock("B")) };
+    default: return { kind:"rawExpr", code:`/*${b.type}*/` };
+  }
+}
+
+function stmtsToAst(first) {
+  const out = [];
+  for (let b = first; b; b = b.getNextBlock()) {
+    const v = (n) => valueToAst(b.getInputTargetBlock(n));
+    switch (b.type) {
+      case "nrl_drive_tank":  out.push({ kind:"driveTank", forward:v("FWD"), turn:v("TURN") }); break;
+      case "nrl_motor_power": out.push({ kind:"setMotor", side:b.getFieldValue("SIDE"), power:v("POWER") }); break;
+      case "nrl_drive_stop":  out.push({ kind:"driveStop" }); break;
+      case "nrl_servo":       out.push({ kind:"setServo", name:b.getFieldValue("NAME"), pos:v("POS") }); break;
+      case "nrl_zero_heading":out.push({ kind:"zeroHeading" }); break;
+      case "nrl_telemetry":   out.push({ kind:"telemetry", key:b.getFieldValue("KEY"), value:v("VALUE") }); break;
+      case "nrl_if":          out.push({ kind:"if", cond:v("COND"),
+                                then:stmtsToAst(b.getInputTargetBlock("THEN")),
+                                else:stmtsToAst(b.getInputTargetBlock("ELSE")) }); break;
+      default:                out.push({ kind:"rawStmt", code:b.type });
+    }
+  }
+  return out;
+}
+
+function workspaceToAst() {
+  const prog = ws.getTopBlocks(false).find(b => b.type === "nrl_teleop");
+  if (!prog) return null;
+  return { nrlProgram:{ version:1, name:prog.getFieldValue("NAME") || "My TeleOp",
+           mode:"TELEOP", body:stmtsToAst(prog.getInputTargetBlock("BODY")) } };
+}
+
+// ---- live render ----------------------------------------------------------
+let lastCpp = "";
+function refresh() {
+  const ast = workspaceToAst();
+  if (!ast) { document.getElementById("script").textContent = "(add a TeleOp program block)"; return; }
+  try {
+    document.getElementById("script").textContent = astToText(ast);
+    lastCpp = astToCpp(ast);
+    document.getElementById("cpp").textContent = lastCpp;
+  } catch (e) { document.getElementById("cpp").textContent = "error: " + e.message; }
+}
+ws.addChangeListener(refresh);
+refresh();
+
+document.getElementById("ex").onclick = async () => {
+  try {
+    const state = await (await fetch("./examples/StudentTeleOp1.json")).json();
+    Blockly.serialization.workspaces.load(state, ws);   // replaces current blocks
+    refresh();
+  } catch (e) { alert("Could not load example: " + e.message); }
+};
+
+document.getElementById("dl").onclick = () => {
+  const name = (workspaceToAst()?.nrlProgram.name || "BlocksTeleOp").replace(/[^A-Za-z0-9]/g,"") || "BlocksTeleOp";
+  const blob = new Blob([lastCpp], { type:"text/plain" });
+  const a = Object.assign(document.createElement("a"), { href:URL.createObjectURL(blob), download:name+".cpp" });
+  a.click();
+};
+</script>
+</body>
+</html>

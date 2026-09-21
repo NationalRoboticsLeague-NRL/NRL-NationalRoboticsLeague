@@ -1,0 +1,43 @@
+# ═══════════════════════════════════════════════
+#  Syntax Highlighting for HexaIMU Library
+# ═══════════════════════════════════════════════
+# KEYWORD1 = Classes (highlighted as types)
+# KEYWORD2 = Methods (highlighted as functions)
+# LITERAL1 = Constants / enum values
+
+# ── Classes ──
+HexaIMU	KEYWORD1
+HexaIMUConfig	KEYWORD1
+HexaIMUData	KEYWORD1
+
+# ── Methods ──
+begin	KEYWORD2
+isReady	KEYWORD2
+read	KEYWORD2
+getData	KEYWORD2
+getAccelX	KEYWORD2
+getAccelY	KEYWORD2
+getAccelZ	KEYWORD2
+getGyroX	KEYWORD2
+getGyroY	KEYWORD2
+getGyroZ	KEYWORD2
+getTemp	KEYWORD2
+setAccelRange	KEYWORD2
+getAccelRange	KEYWORD2
+setGyroRange	KEYWORD2
+getGyroRange	KEYWORD2
+tick	KEYWORD2
+getHeading	KEYWORD2
+isHeadingReady	KEYWORD2
+zeroHeading	KEYWORD2
+resetHeading	KEYWORD2
+
+# ── Enum Constants ──
+HEXA_ACCEL_RANGE_2G	LITERAL1
+HEXA_ACCEL_RANGE_4G	LITERAL1
+HEXA_ACCEL_RANGE_8G	LITERAL1
+HEXA_ACCEL_RANGE_16G	LITERAL1
+HEXA_GYRO_RANGE_250_DPS	LITERAL1
+HEXA_GYRO_RANGE_500_DPS	LITERAL1
+HEXA_GYRO_RANGE_1000_DPS	LITERAL1
+HEXA_GYRO_RANGE_2000_DPS	LITERAL1

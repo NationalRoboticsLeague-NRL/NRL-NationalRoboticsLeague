@@ -1,0 +1,19 @@
+{
+  "name": "HexaOLED",
+  "version": "1.0.0",
+  "description": "Standalone SSD1306 OLED driver for HEXA COMMAND HUB",
+  "keywords": ["oled", "ssd1306", "display", "i2c", "esp32", "hexa"],
+  "authors": [
+    {
+      "name": "Rush",
+      "maintainer": true
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/HexaOLED"
+  },
+  "license": "MIT",
+  "platforms": "espressif32",
+  "frameworks": "arduino"
+}

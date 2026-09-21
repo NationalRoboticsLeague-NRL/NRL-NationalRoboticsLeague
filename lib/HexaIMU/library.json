@@ -1,0 +1,19 @@
+{
+  "name": "HexaIMU",
+  "version": "2.0.0",
+  "description": "LSM6DSOX IMU driver for HEXA COMMAND HUB",
+  "keywords": ["imu", "lsm6dsox", "accelerometer", "gyroscope", "heading", "esp32", "hexa"],
+  "authors": [
+    {
+      "name": "Rush",
+      "maintainer": true
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/HexaIMU"
+  },
+  "license": "MIT",
+  "platforms": "espressif32",
+  "frameworks": "arduino"
+}

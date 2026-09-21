@@ -1,0 +1,19 @@
+{
+  "name": "HexaPower",
+  "version": "1.0.0",
+  "description": "MCP3008 ADC battery-voltage and ACS712 current sensing for HEXA COMMAND HUB",
+  "keywords": ["mcp3008", "acs712", "adc", "current", "voltage", "battery", "esp32", "hexa"],
+  "authors": [
+    {
+      "name": "Rush",
+      "maintainer": true
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/HexaPower"
+  },
+  "license": "MIT",
+  "platforms": "espressif32",
+  "frameworks": "arduino"
+}

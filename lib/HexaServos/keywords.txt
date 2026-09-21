@@ -1,0 +1,30 @@
+# ═══════════════════════════════════════════════
+#  Syntax Highlighting for HexaServos Library
+# ═══════════════════════════════════════════════
+# KEYWORD1 = Classes (highlighted as types)
+# KEYWORD2 = Methods (highlighted as functions)
+# LITERAL1 = Constants
+
+# ── Classes ──
+HexaServo	KEYWORD1
+HexaServoConfig	KEYWORD1
+HexaDCMotor	KEYWORD1
+HexaDCMotorConfig	KEYWORD1
+
+# ── Servo Methods ──
+begin	KEYWORD2
+setPosition	KEYWORD2
+moveBy	KEYWORD2
+getPosition	KEYWORD2
+getMinAngle	KEYWORD2
+getMaxAngle	KEYWORD2
+isReady	KEYWORD2
+detach	KEYWORD2
+attach	KEYWORD2
+writeMicroseconds	KEYWORD2
+
+# ── Motor Methods ──
+setSpeed	KEYWORD2
+getSpeed	KEYWORD2
+stop	KEYWORD2
+setFlipped	KEYWORD2

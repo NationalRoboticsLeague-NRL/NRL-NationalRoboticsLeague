@@ -1,0 +1,140 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "nrl_teleop",
+        "x": 40,
+        "y": 40,
+        "fields": { "NAME": "My TeleOp 1" },
+        "inputs": {
+          "BODY": {
+            "block": {
+              "type": "nrl_drive_tank",
+              "inputs": {
+                "FWD":  { "block": { "type": "nrl_gamepad_axis", "fields": { "STICK": "leftY" } } },
+                "TURN": { "block": { "type": "nrl_gamepad_axis", "fields": { "STICK": "rightX" } } }
+              },
+              "next": {
+                "block": {
+                  "type": "nrl_if",
+                  "inputs": {
+                    "COND": {
+                      "block": {
+                        "type": "logic_compare",
+                        "fields": { "OP": "GT" },
+                        "inputs": {
+                          "A": { "block": { "type": "nrl_gamepad_axis", "fields": { "STICK": "leftX" } } },
+                          "B": { "block": { "type": "math_number", "fields": { "NUM": 0.5 } } }
+                        }
+                      }
+                    },
+                    "THEN": {
+                      "block": {
+                        "type": "nrl_servo",
+                        "fields": { "NAME": "gripper" },
+                        "inputs": { "POS": { "block": { "type": "math_number", "fields": { "NUM": 90 } } } }
+                      }
+                    },
+                    "ELSE": {
+                      "block": {
+                        "type": "nrl_if",
+                        "inputs": {
+                          "COND": {
+                            "block": {
+                              "type": "logic_compare",
+                              "fields": { "OP": "LT" },
+                              "inputs": {
+                                "A": { "block": { "type": "nrl_gamepad_axis", "fields": { "STICK": "leftX" } } },
+                                "B": { "block": { "type": "math_number", "fields": { "NUM": -0.5 } } }
+                              }
+                            }
+                          },
+                          "THEN": {
+                            "block": {
+                              "type": "nrl_servo",
+                              "fields": { "NAME": "gripper" },
+                              "inputs": { "POS": { "block": { "type": "math_number", "fields": { "NUM": 160 } } } }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "next": {
+                    "block": {
+                      "type": "nrl_if",
+                      "inputs": {
+                        "COND": {
+                          "block": {
+                            "type": "logic_compare",
+                            "fields": { "OP": "GT" },
+                            "inputs": {
+                              "A": { "block": { "type": "nrl_gamepad_axis", "fields": { "STICK": "rightY" } } },
+                              "B": { "block": { "type": "math_number", "fields": { "NUM": 0.5 } } }
+                            }
+                          }
+                        },
+                        "THEN": {
+                          "block": {
+                            "type": "nrl_servo",
+                            "fields": { "NAME": "arm" },
+                            "inputs": { "POS": { "block": { "type": "math_number", "fields": { "NUM": 0 } } } }
+                          }
+                        },
+                        "ELSE": {
+                          "block": {
+                            "type": "nrl_if",
+                            "inputs": {
+                              "COND": {
+                                "block": {
+                                  "type": "logic_compare",
+                                  "fields": { "OP": "LT" },
+                                  "inputs": {
+                                    "A": { "block": { "type": "nrl_gamepad_axis", "fields": { "STICK": "rightY" } } },
+                                    "B": { "block": { "type": "math_number", "fields": { "NUM": -0.5 } } }
+                                  }
+                                }
+                              },
+                              "THEN": {
+                                "block": {
+                                  "type": "nrl_servo",
+                                  "fields": { "NAME": "arm" },
+                                  "inputs": { "POS": { "block": { "type": "math_number", "fields": { "NUM": 90 } } } }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "next": {
+                        "block": {
+                          "type": "nrl_if",
+                          "inputs": {
+                            "COND": {
+                              "block": {
+                                "type": "nrl_gamepad_button",
+                                "fields": { "BTN": "LB", "EDGE": "justPressed" }
+                              }
+                            },
+                            "THEN": {
+                              "block": {
+                                "type": "nrl_servo",
+                                "fields": { "NAME": "arm" },
+                                "inputs": { "POS": { "block": { "type": "math_number", "fields": { "NUM": 90 } } } }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

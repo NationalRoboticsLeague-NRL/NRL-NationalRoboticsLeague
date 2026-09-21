@@ -1,0 +1,19 @@
+{
+  "name": "HexaServos",
+  "version": "1.0.0",
+  "description": "Servo and DC motor driver for HEXA COMMAND HUB using ESP32-S3 LEDC peripheral",
+  "keywords": ["servo", "motor", "ledc", "pwm", "esp32", "hexa"],
+  "authors": [
+    {
+      "name": "Rush",
+      "maintainer": true
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/HexaServos"
+  },
+  "license": "MIT",
+  "platforms": "espressif32",
+  "frameworks": "arduino"
+}

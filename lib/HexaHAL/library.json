@@ -1,0 +1,19 @@
+{
+  "name": "HexaHAL",
+  "version": "1.0.0",
+  "description": "Hardware abstraction interfaces for HEXA COMMAND HUB",
+  "keywords": ["hal", "abstraction", "interface", "esp32", "hexa"],
+  "authors": [
+    {
+      "name": "Rush",
+      "maintainer": true
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/HexaHAL"
+  },
+  "license": "MIT",
+  "platforms": "*",
+  "frameworks": "arduino"
+}

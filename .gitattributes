@@ -1,0 +1,6 @@
+# Lock launcher line endings so they work on every OS, regardless of each
+# user's core.autocrlf setting. A CRLF .sh fails on macOS/Linux ("bad interpreter").
+*.sh       text eol=lf
+*.command  text eol=lf
+*.bat      text eol=crlf
+*.py       text eol=lf

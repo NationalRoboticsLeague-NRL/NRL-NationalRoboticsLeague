@@ -1,0 +1,7 @@
+{
+  "name": "HexaNRL",
+  "build": {
+    "libArchive": false,
+    "srcFilter": ["+<*>"]
+  }
+}
