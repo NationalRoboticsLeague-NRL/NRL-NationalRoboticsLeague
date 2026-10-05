@@ -25,9 +25,28 @@ system ports (e.g. Intel AMT "SOL") are ignored automatically.
 import argparse
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 MERGED = Path(__file__).resolve().parent / "prebuilt" / "controller_merged.bin"
+
+# The NVS partition, which this script must NEVER write. Same offset and size in
+# BOTH ControllerFirmware/partitions.csv and RobotFirmware/partitions.csv
+# (nvs, 0x9000, 0x5000).
+#
+# WHY: the merged image is contiguous from 0x0, so writing it whole blanks NVS
+# along the way. On a controller that only costs the saved pairing/channel. On a
+# ROBOT -- plugged in by mistake, which happens -- NVS holds the board's licence
+# (namespace "nrl", key "lic"), and only the Flash Station can reissue it. The
+# robot then boots dark (blank OLED, no LED, ST:E27 on serial) even after the
+# correct robot firmware is uploaded again, and looks like a dead board.
+#
+# So the image is written as two pieces that skip this window. The merged image
+# holds nothing but 0xFF padding there (nothing is placed between the partition
+# table at 0x8000 and otadata at 0xe000); split_image() checks that rather than
+# assuming it.
+NVS_START = 0x9000
+NVS_END = 0xE000
 
 # USB vendor IDs of the serial bridges an NRL controller can show up as.
 # Anything NOT in this list (motherboard UARTs, Intel AMT "SOL" ports, ...)
@@ -110,7 +129,29 @@ def pick_port(label: str = "the controller") -> str:
         print("Please enter one of the listed numbers.")
 
 
-def flash(port, baud, before=None, after=None):
+def split_image(merged, out_dir):
+    """Cut `merged` into (head, tail) files that together skip the NVS window.
+
+    Refuses -- rather than silently flashing something different -- if the
+    window holds anything but erased-flash padding: that would mean the image
+    layout changed and skipping it would drop real data.
+    """
+    data = Path(merged).read_bytes()
+    if len(data) <= NVS_END:
+        sys.exit(f"[error] {merged} is too small ({len(data)} bytes) to be a "
+                 f"controller image. Re-download the kit.")
+    if data[NVS_START:NVS_END].strip(b"\xff"):
+        sys.exit(f"[error] {merged} has data inside the settings area "
+                 f"(0x{NVS_START:X}-0x{NVS_END:X}), which this script never writes.\n"
+                 f"        The image does not match this flasher -- re-download the kit.")
+    head = Path(out_dir) / "controller_head.bin"
+    tail = Path(out_dir) / "controller_tail.bin"
+    head.write_bytes(data[:NVS_START])
+    tail.write_bytes(data[NVS_END:])
+    return head, tail
+
+
+def flash(port, baud, parts, before=None, after=None):
     cmd = [sys.executable, "-m", "esptool", "--chip", "esp32s3"]
     if port:
         cmd += ["--port", port]
@@ -138,11 +179,16 @@ def flash(port, baud, before=None, after=None):
     # underscored form. The warning is the price of working on both. If a future
     # esptool drops the alias this breaks, and the fix is to pin a version in
     # ensure_esptool() -- not to switch spelling and break every 4.x machine.
-    cmd += ["--baud", baud, "write_flash", "0x0", str(MERGED)]
+    #
+    # Two regions in ONE esptool call (not two calls): same single connect and
+    # reset as before, so the manual-download fallback behaves identically.
+    head, tail = parts
+    cmd += ["--baud", baud, "write_flash",
+            "0x0", str(head), f"0x{NVS_END:x}", str(tail)]
     subprocess.run(cmd, check=True)
 
 
-def flash_manual_download(port, baud):
+def flash_manual_download(port, baud, parts):
     """Flash a board whose auto-reset circuit does not reliably work.
 
     esptool's default `--before default_reset` drives DTR/RTS to pull EN and
@@ -193,7 +239,7 @@ def flash_manual_download(port, baud):
             "        Put the board in download mode (hold BOOT, tap RESET,\n"
             "        release BOOT) and re-run with --manual-download."
         )
-    flash(port, baud, before="no_reset", after="no_reset")
+    flash(port, baud, parts, before="no_reset", after="no_reset")
     print("\n[setup] Flashed. Press RESET on the board to start the new firmware --")
     print("        auto-reset cannot do it for you on this board.")
 
@@ -211,26 +257,34 @@ def main():
     if not MERGED.is_file():
         sys.exit(f"[error] Prebuilt image not found: {MERGED}")
 
-    ensure_esptool()
-    port = args.port or pick_port()
+    with tempfile.TemporaryDirectory() as tmp:
+        # Split (and validate) before touching the board, so a bad image is
+        # refused without a single byte written.
+        parts = split_image(MERGED, tmp)
+        ensure_esptool()
+        port = args.port or pick_port()
+        _flash_with_fallbacks(args, port, parts)
+    print("\nDone. On the controller, open the WiFi-channel screen and pick your team's channel.")
 
+
+def _flash_with_fallbacks(args, port, parts):
     try:
         if args.manual_download:
             # Asked for up front, so skip the two attempts already known to fail
             # on such a board rather than making an operator sit through ~40s of
             # them on every unit of a bad batch.
             print("Flashing NRL controller firmware (manual download mode)...")
-            flash(port, args.baud, before="no_reset", after="no_reset")
+            flash(port, args.baud, parts, before="no_reset", after="no_reset")
             print("\n[setup] Press RESET on the board to start the new firmware.")
         else:
             print("Flashing NRL controller firmware...")
             try:
-                flash(port, args.baud)
+                flash(port, args.baud, parts)
             except subprocess.CalledProcessError:
                 # Slow/flaky USB paths sometimes fail at full speed -- one retry, slower.
                 if args.baud != "115200":
                     print("\n[setup] Flash failed at full speed -- retrying at 115200 baud...")
-                    flash(port, "115200")
+                    flash(port, "115200", parts)
                 else:
                     raise
     except subprocess.CalledProcessError as e:
@@ -243,7 +297,7 @@ def main():
                      f"        Check the board really is in download mode, and that\n"
                      f"        {port or 'the auto-detected port'} is the right port.")
         try:
-            flash_manual_download(port, "115200")
+            flash_manual_download(port, "115200", parts)
         except subprocess.CalledProcessError as e2:
             sys.exit(f"[error] Flash failed in download mode too (exit {e2.returncode}).\n"
                      f"        If BOOT+RESET was held correctly, suspect the board.")
@@ -251,7 +305,6 @@ def main():
             sys.exit("\n[error] Cancelled. Nothing was written to the board.")
     except FileNotFoundError:
         sys.exit("[error] Could not run Python. Is Python on your PATH?")
-    print("\nDone. On the controller, open the WiFi-channel screen and pick your team's channel.")
 
 
 if __name__ == "__main__":

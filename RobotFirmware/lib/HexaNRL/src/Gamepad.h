@@ -57,9 +57,19 @@ public:
     // ----------------------------------------------------------
     void reset();
 
+    // ----------------------------------------------------------
+    //  ignoreHeldButtons() — Called by NRLRunner on the first tick
+    //  of a run. Buttons already held at that moment (the X that
+    //  pressed START) are invisible until released once, so they
+    //  cannot fire justPressed()/onPress() as the run begins.
+    //  Not for student use.
+    // ----------------------------------------------------------
+    void ignoreHeldButtons();
+
 private:
     struct Snap { float lx=0, ly=0, rx=0, ry=0; uint16_t buttons=0; };
     Snap _curr, _prev;
+    uint16_t _heldAtStart = 0;   // buttons still held since ignoreHeldButtons()
 
     struct Binding { uint16_t btn=0; std::function<void()> cb; };
     Binding _press[MAX_BINDINGS];

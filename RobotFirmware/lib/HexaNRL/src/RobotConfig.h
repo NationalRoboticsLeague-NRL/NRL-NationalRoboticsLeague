@@ -86,6 +86,11 @@ bool nrlBootloaderRetried();
 // a mid-run reset can be correlated with the run that was in progress.
 const char* nrlLastResetReasonName();
 
+// Same reason as a bare token ("POWERON", "BROWNOUT", "PANIC", "TASK_WDT", ...)
+// short enough for one OLED row. The robot's idle status screen shows it with
+// the boot count, so a bot that rebooted mid-match says why without a laptop.
+const char* nrlLastResetReasonShort();
+
 // Prints the boot reason / boot count. Must be called AFTER Serial.begin() and
 // the USB CDC enumeration delay - see RobotConfig.cpp.
 void nrlPrintBootDiagnostics();

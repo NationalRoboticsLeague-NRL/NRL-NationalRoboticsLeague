@@ -111,6 +111,14 @@ public:
     static void debugBlackout(uint32_t ms);
     static bool debugBlackoutActive();
 
+    // Watchdog-race probe. debugBlackout() can never reproduce the field exit:
+    // it SUPPRESSES packets, so _lastCtrlMs only ever ages. The real fault is the
+    // opposite - the ESP-NOW callback (core 0) stamping _lastCtrlMs with a time
+    // NEWER than the `now` tickPairing() (core 1) sampled a few microseconds
+    // earlier. This arms exactly that state for the next PAIRED tick, so the
+    // interleave that happens by chance on a field happens here on demand.
+    static void debugRaceArm();
+
     // Airtime probe. Sends `frames` ESP-NOW frames of `payloadBytes` back to
     // back and reports how long the RADIO actually took, as one
     // machine-parseable AIRTIME: line for dev-docs/bench/airtime.py.
