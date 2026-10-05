@@ -1,6 +1,5 @@
 {
   "source_lib": "lib\\HexaOLED",
-  "built_from_commit": "f417bf64003ff316aaec38fd34baa8c452150374",
   "built_at": "2026-10-05T21:17:48.351420Z",
   "harvested_from_project": "RobotFirmware",
   "harvested_env": "robot",
