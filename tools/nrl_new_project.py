@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-HexaSDK — Create a New Project
-==============================
+NRL: New Project — the NRL SDK project wizard
+=============================================
 
-HexaSDK is the NRL Hexa Command Hub's WPILib-style project generator.
+The NRL SDK's WPILib-style project generator, and the entry point for every
+team project.
 
 This script lives inside the NRL repo (which doubles as the bundled template).
 It copies the template into a fresh, team-stamped project folder elsewhere on
@@ -11,17 +12,17 @@ disk so a student can start with a clean, build-ready copy.
 
 What the team number does
 -------------------------
-NRL has no roboRIO-style deploy target. Instead the team number selects the
-ESP-NOW radio channel (1-11) that BOTH the robot and controller firmware are
-pinned to, so multiple kits in one room interfere less. The same channel is
-stamped into both `platformio.ini` files as `-DNRL_WIFI_CHANNEL=<ch>`; the
-firmware reads it (defaulting to channel 1 when unset). Robot and controller
-must be flashed from the SAME generated project so their channels match.
+NRL has no roboRIO-style deploy target. Instead the team number selects an
+ESP-NOW radio channel, round-robin over 1/6/11 (see channel_for_team), so
+multiple kits in one room interfere less. It is stamped into the project's
+`platformio.ini` as `-DNRL_WIFI_CHANNEL=<ch>`; the firmware reads it
+(defaulting to channel 1 when unset). In the student kit the controller is a
+prebuilt image, so its channel is set on its WiFi Channel screen to match.
 
 Run it
 ------
 Interactive (recommended):    py -3 tools/nrl_new_project.py
-Or via VS Code:               Ctrl+Shift+P -> Tasks: Run Task -> "NRL: Create a New Project (HexaSDK)"
+Or via VS Code:               Ctrl+Shift+P -> Tasks: Run Task -> "NRL: New Project"
 Non-interactive:              py -3 tools/nrl_new_project.py --name MyBot --team 7539 --dir C:\\Projects --yes
 
 Requires Python 3.7+ (stdlib only). PlatformIO already ships a Python.
@@ -908,7 +909,7 @@ def choose_base_dir_interactive(default_dir: str, repo_root: Path) -> Path:
 def parse_args(argv):
     p = argparse.ArgumentParser(
         prog="nrl_new_project",
-        description="HexaSDK — create a new NRL project (WPILib-style) from the bundled template.",
+        description="NRL: New Project — create a new NRL SDK project (WPILib-style) from the bundled template.",
     )
     p.add_argument("--name", help="Project name (becomes the new folder name).")
     p.add_argument("--team", help="Team number (1-999). Selects the ESP-NOW channel.")
@@ -939,7 +940,7 @@ def main(argv=None):
     can_prompt = interactive and not args.yes
 
     print("=" * 60)
-    print("  HexaSDK  ·  Create a New Project")
+    print("  NRL SDK  ·  NRL: New Project")
     print("=" * 60)
 
     # --- Project name ---
@@ -993,7 +994,7 @@ def main(argv=None):
     # screen and the number here are never a surprise to each other.
     print(f"  Team number  : {team:03d}")
     print(f"  Team name    : {team_name}")
-    print(f"  ESP-NOW chan : {channel}   (robot + controller pinned to this)")
+    print(f"  ESP-NOW chan : {channel}   (robot pinned; set the controller to match)")
     print(f"  Location     : {target}")
     print("-" * 60)
 
@@ -1037,7 +1038,7 @@ def main(argv=None):
     print("Next steps:")
     print(f"  1. Open  {workspace_path}  in VS Code")
     print("  2. Click Build/Upload in PlatformIO - dependencies download on first build")
-    print("  3. Flash BOTH the robot and controller from this project so channels match\n")
+    print(f"  3. On the controller's WiFi Channel screen, select channel {channel}\n")
 
     if args.open and not try_open_in_vscode(workspace_path):
         print("(VS Code not found - open the workspace above manually, or set the")

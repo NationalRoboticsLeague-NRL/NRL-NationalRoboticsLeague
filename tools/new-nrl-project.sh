@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ===================================================================
-#  HexaSDK - Create a New Project  (launcher, macOS / Linux)
+#  NRL: New Project - NRL SDK project wizard  (launcher, macOS / Linux)
 #  Runs the wizard, then opens the generated project in VS Code.
 #  Usage:  bash tools/new-nrl-project.sh    (or chmod +x and run it)
 # ===================================================================

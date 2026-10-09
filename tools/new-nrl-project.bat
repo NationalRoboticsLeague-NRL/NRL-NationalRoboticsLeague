@@ -1,11 +1,11 @@
 @echo off
 rem ===================================================================
-rem  HexaSDK - Create a New Project  (double-click launcher, Windows)
+rem  NRL: New Project - NRL SDK project wizard  (double-click launcher, Windows)
 rem  Runs the wizard, then opens the generated project in VS Code.
 rem  You do NOT need to open the template in VS Code first.
 rem ===================================================================
 setlocal
-title HexaSDK - Create a New Project
+title NRL SDK - New Project
 
 rem This .bat lives in <repo>\tools\ ; the generator sits next to it.
 set "SCRIPT=%~dp0nrl_new_project.py"

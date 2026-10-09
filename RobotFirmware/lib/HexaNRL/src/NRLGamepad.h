@@ -50,15 +50,30 @@ struct NRLGamepad {
     static volatile float    rightY;
     static volatile uint16_t buttons;
 
-    // Spinlock protecting the five fields above.
+    // Counts real GAMEPAD packets: update() bumps it, clear() and
+    // clearIfNoPacketSince() don't. Lets a reader tell controller data from the
+    // zeros NRLComms writes while input is stale.
+    static volatile uint32_t packetSeq;
+
+    // Spinlock protecting the fields above.
     // Both update() (WiFi task, core 0) and read() (main task, core 1) must hold it.
     static portMUX_TYPE mux;
 
     // Called by NRLComms on every received GAMEPAD packet (WiFi task context).
     static void update(float lx, float ly, float rx, float ry, uint16_t btns);
 
+    // Zero every field. Not a packet, so packetSeq is left alone.
+    static void clear();
+
+    // Zero every field unless a packet arrived after packetSeq read `seq`. The
+    // stale-input path uses this so it can never overwrite a packet that landed
+    // between its silence check and the write.
+    static void clearIfNoPacketSince(uint32_t seq);
+
     // Atomically copy all five fields — use this instead of reading fields directly.
     static void read(float& lx, float& ly, float& rx, float& ry, uint16_t& btns);
+    // Same, plus packetSeq from the same instant.
+    static void read(float& lx, float& ly, float& rx, float& ry, uint16_t& btns, uint32_t& seq);
 
     static bool pressed(uint16_t btn);
 };

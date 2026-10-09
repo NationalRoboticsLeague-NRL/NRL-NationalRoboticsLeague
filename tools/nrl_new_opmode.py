@@ -94,9 +94,9 @@ def render_opmode(name: str, optype: str, display: str) -> str:
     """Minimal skeleton — empty init/loop/stop + REGISTER_OPMODE. Mirrors the
     nrlteleop/nrlauto editor snippets so both paths produce the same shape."""
     if optype == "AUTO":
-        loop_comment = "// Runs at 50 Hz for ~60 s — telemetry and sensor reads go here."
+        loop_comment = "// Runs at 100 Hz for ~60 s — telemetry and sensor reads go here."
         # AUTO routines belong in start(), not loop(): queued there they run
-        # exactly once instead of restarting 50 times a second.
+        # exactly once instead of restarting 100 times a second.
         start_block = (
             "    void start() override {\n"
             "        // Runs once when the match starts — queue your routine\n"
@@ -108,7 +108,7 @@ def render_opmode(name: str, optype: str, display: str) -> str:
         # prevents (loop() silently overwriting an action) only shows up in
         # TELEOP, where loop() drives hardware every tick.
         loop_comment = (
-            "// Runs at 50 Hz until STOP — read gamepad1, drive motors here.\n"
+            "// Runs at 100 Hz until STOP — read gamepad1, drive motors here.\n"
             "        //\n"
             "        // Control each part in ONE place: loop() or an action, not\n"
             "        // both. Actions run before loop() each tick, so loop() would\n"

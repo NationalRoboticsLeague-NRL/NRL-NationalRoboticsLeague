@@ -68,8 +68,13 @@ public:
 
 private:
     struct Snap { float lx=0, ly=0, rx=0, ry=0; uint16_t buttons=0; };
-    Snap _curr, _prev;
-    uint16_t _heldAtStart = 0;   // buttons still held since ignoreHeldButtons()
+    Snap _curr, _prev;               // buttons = what pressed() reports
+    uint16_t _edgeCurr = 0, _edgePrev = 0;  // what justPressed()/justReleased() compare
+    uint16_t _raw = 0;               // last raw buttons read
+    uint16_t _heldAtStart = 0;       // hidden from pressed() AND edges until released
+    uint16_t _heldThroughOutage = 0; // hidden from edges only until released
+    uint32_t _staleSeq = 0;          // packetSeq seen while input was stale
+    bool     _awaitPacket = false;   // stale ended, no real packet yet
 
     struct Binding { uint16_t btn=0; std::function<void()> cb; };
     Binding _press[MAX_BINDINGS];

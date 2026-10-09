@@ -9,10 +9,6 @@
       "maintainer": true
     }
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/YOUR_USERNAME/HexaHAL"
-  },
   "license": "MIT",
   "platforms": "*",
   "frameworks": "arduino"

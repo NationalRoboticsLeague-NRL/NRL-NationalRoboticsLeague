@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ===================================================================
-#  HexaSDK - Create a New Project  (double-click launcher, macOS)
+#  NRL: New Project - NRL SDK project wizard  (double-click launcher, macOS)
 #  Finder runs .command files in Terminal on double-click -- this is
 #  the Mac equivalent of new-nrl-project.bat. It just calls the shared
 #  .sh so the Python-finding logic stays in one place.

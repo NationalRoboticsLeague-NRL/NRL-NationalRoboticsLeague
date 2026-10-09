@@ -1,7 +1,7 @@
 // ╔════════════════════════════════════════════════════════════╗
 // ║  DO NOT EDIT — NRL Robot entry point                     ║
 // ║  Your code goes in:  RobotFirmware/opmodes/              ║
-// ║  Open StudentTeleOp1.cpp or StudentAuto.cpp to start.    ║
+// ║  Create one with the 'NRL: New OpMode' task.             ║
 // ╚════════════════════════════════════════════════════════════╝
 
 #include <Arduino.h>

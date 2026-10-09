@@ -5,7 +5,7 @@
 //  ExampleSubsystem.h — optional subsystem pattern
 // ============================================================
 //  You do NOT need to use this. If your code is simple, put
-//  everything directly in StudentAuto.cpp or StudentTeleOp.cpp.
+//  everything directly in your own opmode file.
 //
 //  Use this pattern when you want to group hardware belonging
 //  to one mechanism (arm, intake, shooter, etc.) into its own

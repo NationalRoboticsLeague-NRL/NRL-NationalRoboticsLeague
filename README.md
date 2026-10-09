@@ -1,7 +1,10 @@
-# NRL — National Robotics League
-### HEXA COMMAND HUB
+# NRL SDK
+### National Robotics League · for the Hexa Command Hub
 
-A plug-and-play robotics platform for competition teams built on dual ESP32-S3 microcontrollers. Students write only their game logic in `opmodes/` — the library handles hardware, wireless comms, timing, and display.
+The NRL SDK is the software kit teams use to program their robots: the HexaNRL runtime, the
+Hexa* hardware libraries, the project and OpMode wizards, and the Blocks editor. It runs on the
+Hexa Command Hub (robot) and the NRL controller, both built on ESP32-S3. Students write only
+their game logic in `opmodes/`; the SDK handles hardware, wireless comms, timing, and display.
 
 ---
 
@@ -17,7 +20,6 @@ A plug-and-play robotics platform for competition teams built on dual ESP32-S3 m
 | LSM6DSOX IMU | 1 | Controller orientation |
 | MCP3008 8-ch SPI ADC | 1 | Robot battery-voltage + current sensing |
 | ACS712 current sensor | 2 | DC-motor rail + servo rail current |
-| PS5 DualSense controller | Optional | Bluetooth gamepad input |
 
 ---
 
@@ -101,34 +103,24 @@ That's it. PlatformIO automatically downloads all library dependencies on first 
 
 ## Getting Started
 
-### Option A — GitHub Template (recommended)
-1. Click **"Use this template"** → **"Create a new repository"**
-2. Name your repo, set visibility, click **Create**
-3. Clone your new repo locally
-4. Open `NRL_Update_1.code-workspace` in VSCode
-5. PlatformIO will auto-install all dependencies on first build
+Every team project starts from the **project wizard**. It stamps your team number into the
+project (which picks your radio channel), writes your `<ProjectName>.code-workspace`, and opens
+it. Don't open or build the downloaded kit folder directly; run the wizard first.
 
-### Option B — Download ZIP
-1. Go to [Releases](../../releases) and download the latest `.zip`
-2. Extract the folder
-3. Open `NRL_Update_1.code-workspace` in VSCode
-4. PlatformIO will auto-install all dependencies on first build
+**1. Get the kit.** Download the latest `.zip` from [Releases](../../releases) and extract it,
+or click **"Use this template"** on GitHub and clone your copy.
 
-### Option C — NRL: Create a New Project (HexaSDK) (wizard)
-Spin off a fresh, team-stamped copy of the template with **HexaSDK** — the NRL equivalent of
-WPILib's *"Create a new project"*. The wizard asks for a name, team number, and location, then
-**opens your new project automatically** so you can start coding.
+**2. Run the project wizard** (nothing needs to be open first):
+- Windows: double-click **`tools\new-nrl-project.bat`**
+- macOS: double-click **`tools/new-nrl-project.command`**
+- Linux: run **`bash tools/new-nrl-project.sh`**
 
-**Easiest — double-click the launcher (nothing needs to be open first):**
-- Windows: run **`tools\new-nrl-project.bat`** (double-click it, or pin a desktop shortcut)
-- macOS / Linux: run **`bash tools/new-nrl-project.sh`**
+It asks for **project name**, **team number**, **team name** and **location**, then creates the
+project.
 
-**Or, from an already-open copy of this repo:**
-`Ctrl+Shift+P` → `Tasks: Run Task` → **`NRL: Create a New Project (HexaSDK)`**
-
-Either way you're asked for **project name**, **team number**, **location**, and whether to
-include the example opmodes; then the generated `<ProjectName>.code-workspace` opens — Build/Upload,
-and dependencies install on first build, same as above.
+**3. Start coding.** Your new project opens in VS Code. Create OpModes with **`NRL: New OpMode`**
+(see *Writing Your Code* below) and Build/Upload. PlatformIO installs dependencies on the first
+build.
 
 Non-interactive use:
 ```
@@ -139,11 +131,15 @@ See [tools/README.md](tools/README.md) for all options.
 
 #### What the team number does
 NRL has no roboRIO-style deploy target, so the team number instead selects the **ESP-NOW radio
-channel** (`((team − 1) mod 11) + 1`, i.e. channels 1–11). Both the robot and controller firmware
-generated for a project are pinned to that same channel via `-DNRL_WIFI_CHANNEL`, which reduces
-interference when several kits run in one room. **Flash the robot and controller from the *same*
-generated project** so their channels match. (Channel is a soft RF split — the button + 4-digit
-pairing still keeps kits logically separate.) The checked-in template defaults to channel 1.
+channel**, round-robin over the non-overlapping channels **1, 6 and 11** (team 1 → 1, team 2 → 6,
+team 3 → 11, team 4 → 1, …). The robot firmware generated for a project is pinned to that channel
+via `-DNRL_WIFI_CHANNEL`, which spreads kits out when several run in one room. **Set the
+controller's WiFi Channel screen to the same channel.** (Channel is a soft RF split — the button +
+4-digit pairing still keeps kits logically separate.) At a competition, every robot on one field
+must share that field's channel instead; set it with `py -3 tools/set-competition-channel.py`.
+
+> **Maintainers:** this source repo is opened with `NRL_Update_1.code-workspace` at its root.
+> The student kit doesn't ship that file; students always start from the wizard.
 
 ---
 
@@ -210,44 +206,79 @@ https://www.silabs.com/software-and-tools/usb-to-uart-bridge-vcp-drivers
 
 ## Writing Your Code
 
-Students only ever edit files inside:
+Your robot code lives in **`RobotFirmware/opmodes/`**, which is empty in the student kit
+(this source repo keeps maintainer test and sample OpModes there). Each file there is
+one OpMode, a program you pick from the Controller menu. Create one with
+`Ctrl+Shift+P` → `Tasks: Run Task` → **`NRL: New OpMode`** (or run
+`tools\new-nrl-opmode.bat` / `bash tools/new-nrl-opmode.sh`). That writes the skeleton below,
+with the `REGISTER_OPMODE` line already in place.
 
-```
-RobotFirmware/opmodes/
-├── StudentAuto.cpp      ← Autonomous mode
-├── StudentTeleOp1.cpp   ← Teleop mode 1
-└── StudentTeleOp2.cpp   ← Teleop mode 2
-```
+Every OpMode inherits from `NRLOpMode` and overrides only the hooks it needs (all four are
+optional):
 
-Every opmode inherits from `NRLOpMode` and overrides three methods:
+| Hook | When it runs |
+|------|--------------|
+| `init()` | Once, when INIT is pressed. `begin()` your hardware here. Keep it short: never block or `delay()`. |
+| `start()` | Once, when the match starts, right before the first `loop()`. Queue an AUTO routine here. |
+| `loop()` | **100 Hz**. TELEOP runs for 2:30, AUTO for 60 s. |
+| `stop()` | Once, on STOP. Stop your motors and servos here. |
+
+A small TeleOp (tank drive plus a gripper on a button):
 
 ```cpp
 #include "NRL.h"
 
-class StudentAuto : public NRLOpMode {
+// Declare hardware at file scope. Pin names come from BoardPins.h.
+static HexaDCMotor leftMotor {{ .dirPin = MOTOR_L_DIR, .pwmPin = MOTOR_L_PWM }};
+static HexaDCMotor rightMotor{{ .dirPin = MOTOR_R_DIR, .pwmPin = MOTOR_R_PWM, .flipped = true }};
+static HexaServo   gripper   {{ .signalPin = SERVO_1, .startAngle = 15.0f }};
+static TankDrive   drive(leftMotor, rightMotor);
+
+class MyTeleOp : public NRLOpMode {
 public:
     void init() override {
-        // runs once at match start
+        gripper.begin();      // servos first, then motors
+        leftMotor.begin();
+        rightMotor.begin();
     }
 
     void loop() override {
-        // runs at 50 Hz during match
-        nrl.servo(0).setAngle(90);
-        nrl.motor(0).setPower(0.5f);
+        drive.drive(gamepad1.leftY(), gamepad1.rightX());   // forward/back + turn
+
+        if (gamepad1.justPressed(BTN_X)) gripper.setPosition(15);   // open
+        if (gamepad1.justPressed(BTN_A)) gripper.setPosition(90);   // close
+
+        telemetry.addData("left Y", gamepad1.leftY());
     }
 
     void stop() override {
-        // runs once at match end
+        drive.stop();
+        gripper.detach();
     }
 };
+
+REGISTER_OPMODE(MyTeleOp, "My TeleOp", TELEOP);
 ```
 
 ### Registering an OpMode
 
-The `REGISTER_OPMODE(ClassName, "Display Name", TELEOP|AUTO);` line at the bottom
-of an OpMode file is what makes it appear on the Controller menu. Add a new
-OpMode by creating `RobotFirmware/opmodes/<Name>.cpp` with empty
-`init()/loop()/stop()` overrides plus that `REGISTER_OPMODE(...)` line.
+The `REGISTER_OPMODE(ClassName, "Display Name", TELEOP);` line (or `AUTO`) at the bottom of
+the file is what puts the OpMode on the Controller menu. Without it, the code compiles but
+never appears.
+
+### Rules of thumb
+
+- **No `delay()`.** Use actions (`runAction(sequential({ ... }))`, `sleep_ms()`) for timed
+  sequences. In AUTO, queue the routine once in `start()`. In TELEOP, queue it on a button
+  press with `justPressed()`, never every tick.
+- **Control each part in one place**, either `loop()` or an action, not both.
+- **Telemetry:** use `telemetry.addData("key", value)`. It's sent to the Controller automatically.
+- **Battery and current:** the global `power` object (see *Power & Current Sensing* above).
+
+`NRLOpMode.h` documents the full lifecycle and the action helpers (`instant`, `sequential`,
+`parallel`, `sleep_ms`, `wait_until`, `cancelActions`, `isActionRunning`).
+`NRLGamepad.h` lists every button and stick. The board has X, A, Y and the D-pad but **no B
+button**.
 
 ---
 
@@ -255,39 +286,32 @@ OpMode by creating `RobotFirmware/opmodes/<Name>.cpp` with empty
 
 | Library | Purpose |
 |---------|---------|
-| **HexaServos** | PWM servo and DC motor control (no external deps) |
-| **HexaOLED** | SSD1306 OLED display driver (I2C, no external deps) |
-| **HexaIMU** | LSM6DSOX 6-DOF IMU driver, with non-blocking heading (I2C, wraps Adafruit_LSM6DSOX) |
-| **HexaPower** | MCP3008 ADC — battery voltage + ACS712 current sensing (SPI, no external deps) |
+| **HexaNRL** | The robot runtime: OpMode lifecycle, match timing, wireless link, gamepad, telemetry, actions, `TankDrive`. Ships precompiled in the student kit. |
+| **HexaServos** | `HexaServo` (PWM servos) and `HexaDCMotor` (DC motors) |
+| **HexaIMU** | LSM6DSOX 6-DOF IMU driver with non-blocking heading (wraps Adafruit_LSM6DSOX) |
+| **HexaOLED** | SSD1306 OLED display driver (I²C) |
+| **HexaPower** | MCP3008 ADC: battery voltage and ACS712 rail current (HexaNRL provides the global `power` instance) |
+| **HexaLED** | NeoPixel status and user LED |
 | **HexaHAL** | Hardware abstraction interfaces |
-| **HexaNRL** | Unified robot facade — the `nrl` object students use |
-| **ps5_Library** | PS5 DualSense Bluetooth driver |
 
-All core libraries use only the ESP32 Arduino Core — zero third-party dependencies for the robot.
+Third-party dependencies (fetched by PlatformIO on first build): Adafruit NeoPixel,
+Adafruit LSM6DS and Adafruit Unified Sensor.
 
 ---
 
 ## Project Structure
 
 ```
-NRL_Update_1/
-├── RobotFirmware/          ← Flash this to the Robot ESP32-S3
-│   ├── opmodes/            ← Students edit files here only
-│   ├── src/RobotMain.ino   ← Entry point (do not edit)
-│   └── lib/                ← NRL runner, comms, state machine
-├── ControllerFirmware/     ← Flash this to the Controller ESP32-S3
-│   └── src/ControllerMain.ino
-├── lib/                    ← Shared hardware drivers
-│   ├── HexaServos/
-│   ├── HexaOLED/
-│   ├── HexaIMU/
-│   ├── HexaPower/
-│   ├── HexaHAL/
-│   └── ps5_Library/
-└── boards/                 ← Custom ESP32-S3 board definitions (reference only —
-                               neither platformio.ini is wired to them yet; both
-                               builds currently target the stock esp32-s3-devkitc-1
-                               board profile)
+RobotFirmware/              ← Flash this to the robot
+├── opmodes/                ← YOUR CODE: one .cpp per OpMode
+├── src/RobotMain.ino       ← Entry point (do not edit)
+├── lib/HexaNRL/            ← Robot runtime (do not edit)
+└── boards/                 ← Custom board definition (reference only; platformio.ini
+                               still targets the stock esp32-s3-devkitc-1 profile)
+ControllerFirmware/         ← Controller firmware (the student kit ships it as a
+                               prebuilt image + flasher; nothing to build there)
+lib/                        ← Hardware drivers (HexaServos, HexaIMU, HexaOLED, HexaPower, HexaLED, HexaHAL)
+tools/                      ← Project and OpMode generators, Blocks editor
 ```
 
 ---

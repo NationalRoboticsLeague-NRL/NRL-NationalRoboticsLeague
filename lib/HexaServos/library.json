@@ -9,10 +9,6 @@
       "maintainer": true
     }
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/YOUR_USERNAME/HexaServos"
-  },
   "license": "MIT",
   "platforms": "espressif32",
   "frameworks": "arduino"

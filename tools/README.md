@@ -1,6 +1,7 @@
-# HexaSDK — project generator
+# NRL: New Project — the NRL SDK project wizard
 
-**HexaSDK** is the NRL Hexa Command Hub's project generator — the NRL equivalent of WPILib's
+**NRL: New Project** is the NRL SDK's project generator and the entry point for every team
+project — the NRL equivalent of WPILib's
 *"Create a new project"*. Its wizard (`nrl_new_project.py`) scaffolds a new, team-stamped NRL
 project from this repo, which doubles as the bundled template; the script copies it into a fresh
 folder elsewhere on disk.
@@ -32,7 +33,7 @@ All methods below ask the same prompts and **auto-open the generated project** i
 > Cloning the repo with `git` instead of downloading a ZIP avoids quarantine entirely.
 
 **From VS Code (if the template repo is already open):**
-`Ctrl+Shift+P` → `Tasks: Run Task` → **`NRL: Create a New Project (HexaSDK)`**.
+`Ctrl+Shift+P` → `Tasks: Run Task` → **`NRL: New Project`**.
 (The task is defined in `NRL_Update_1.code-workspace`, the private dev workspace — not shipped to students.)
 
 > **Which editor it opens:** the wizard auto-opens the new project in **VS Code specifically**,
@@ -87,14 +88,16 @@ Build artifacts and tooling (`.git`, `.pio`, `.vscode`, `tools/`) are **not** co
 Dependencies download on the first PlatformIO build, exactly like the manual flows.
 
 ## Team number → radio channel
-NRL has no roboRIO-style deploy target. The team number maps to an ESP-NOW channel:
+NRL has no roboRIO-style deploy target. The team number maps to an ESP-NOW channel,
+round-robin over the non-overlapping channels 1, 6 and 11 (`channel_for_team()`):
 
 ```
-channel = ((team − 1) mod 11) + 1     # channels 1–11 (legal in every region)
+channel = (1, 6, 11)[(team − 1) mod 3]     # team 1 → 1, team 2 → 6, team 3 → 11, team 4 → 1, …
 ```
 
-Both firmwares in a generated project are pinned to this channel via `-DNRL_WIFI_CHANNEL`. The
+The robot firmware in a generated project is pinned to this channel via `-DNRL_WIFI_CHANNEL`. The
 firmware defaults to channel 1 when the macro is undefined, so the **un-stamped template behaves
-exactly as before**. Flash the robot and controller from the *same* generated project so their
-channels match. This is a soft RF split — the existing button + 4-digit pairing (saved in NVS)
+exactly as before**. In the student kit the controller is a prebuilt image: select the same
+channel on its **WiFi Channel** screen (the wizard prints it). At a competition, every robot on one
+field shares that field's channel instead — use `set-competition-channel.py`. This is a soft RF split — the existing button + 4-digit pairing (saved in NVS)
 still keeps kits logically separate even if two team numbers land on the same channel.

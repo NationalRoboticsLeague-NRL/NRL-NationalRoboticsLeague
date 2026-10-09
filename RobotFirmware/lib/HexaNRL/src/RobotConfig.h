@@ -7,7 +7,7 @@
 //  itself requires (pairing OLED, button, gamepad).
 //
 //  Your robot hardware (motors, servos, IMU …) goes at the
-//  top of your own opmode file — see StudentTeleOp1.cpp.
+//  top of your own opmode file — see "Writing Your Code" in README.md.
 
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
