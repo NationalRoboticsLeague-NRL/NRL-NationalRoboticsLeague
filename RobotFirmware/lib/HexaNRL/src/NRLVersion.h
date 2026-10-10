@@ -10,4 +10,4 @@
 //  The controller has its own version: ControllerFirmware/src/ControllerVersion.h.
 //  Which robot and controller versions ship together is in docs/COMPATIBILITY.md.
 
-#define NRL_SDK_VERSION "1.3.9"
+#define NRL_SDK_VERSION "1.4.0"
