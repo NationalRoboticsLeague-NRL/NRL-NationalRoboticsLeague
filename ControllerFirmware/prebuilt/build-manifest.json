@@ -2,8 +2,8 @@
   "artifact": "controller_merged.bin",
   "controller_version": "1.5.5",
   "flash_offset": "0x0",
-  "built_from_commit": "1e986e4207c6346e2aa20487583c4f7430676d4a",
-  "built_at": "2026-10-10T07:00:18.794623+00:00",
+  "built_from_commit": "036661d7fa9340e198bf3f6d376121ae8c214f59",
+  "built_at": "2026-10-10T14:39:10.856239+00:00",
   "env": "controller",
   "license_pubkey_prefixes": [
     "04f1ceb09456b9a6",
